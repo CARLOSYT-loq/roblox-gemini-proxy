@@ -5,14 +5,14 @@ export default async function handler(req, res) {
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-        return res.status(500).json({ respuesta: "Falta la clave GEMINI_API_KEY en las variables de entorno de Vercel." });
+        return res.status(500).json({ respuesta: "Falta la clave GEMINI_API_KEY en Vercel." });
     }
 
     try {
         const { prompt } = req.body;
         const userPrompt = prompt || "Hola";
 
-        // Llamada REST directa a la API de Gemini (evita problemas de versión de librerías en Vercel)
+        // Llamada REST directa a Gemini con la propiedad correcta: system_instruction
         const response = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
             {
@@ -27,7 +27,7 @@ export default async function handler(req, res) {
                             parts: [{ text: userPrompt }]
                         }
                     ],
-                    systemInstruction: {
+                    system_instruction: {
                         parts: [
                             {
                                 text: "Eres 'Marcus', el mejor amigo y compañero de confianza del jugador. Eres cálido, leal, optimista y siempre estás listo para ayudarlo o charlar. Responde en 1 a 3 frases de forma natural, amigable y cercana."
@@ -41,17 +41,16 @@ export default async function handler(req, res) {
         const data = await response.json();
 
         if (!response.ok) {
-            console.error("Error devuelto por Gemini API:", data);
+            console.error("Error de Gemini API:", data);
             return res.status(500).json({ respuesta: "Ocurrió un problema con la conexión de la IA." });
         }
 
-        // Extraer la respuesta generada por Gemini
         const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "¡Hola! Estoy listo para acompañarte.";
 
         return res.status(200).json({ respuesta: textResponse });
 
     } catch (error) {
-        console.error("Error interno del servidor:", error);
+        console.error("Error interno:", error);
         return res.status(500).json({ respuesta: "Error al procesar la solicitud." });
     }
 }
