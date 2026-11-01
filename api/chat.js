@@ -1,34 +1,57 @@
-import { GoogleGenAI } from '@google/genai';
-
-// Inicialización con la API Key configurada en Vercel
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
 export default async function handler(req, res) {
-    // Permitir solo solicitudes POST
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Método no permitido' });
     }
 
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+        return res.status(500).json({ respuesta: "Falta la clave GEMINI_API_KEY en las variables de entorno de Vercel." });
+    }
+
     try {
         const { prompt } = req.body;
+        const userPrompt = prompt || "Hola";
 
-        if (!prompt) {
-            return res.status(400).json({ error: 'Falta el mensaje en la petición' });
+        // Llamada REST directa a la API de Gemini (evita problemas de versión de librerías en Vercel)
+        const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    contents: [
+                        {
+                            role: 'user',
+                            parts: [{ text: userPrompt }]
+                        }
+                    ],
+                    systemInstruction: {
+                        parts: [
+                            {
+                                text: "Eres 'Marcus', el mejor amigo y compañero de confianza del jugador. Eres cálido, leal, optimista y siempre estás listo para ayudarlo o charlar. Responde en 1 a 3 frases de forma natural, amigable y cercana."
+                            }
+                        ]
+                    }
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            console.error("Error devuelto por Gemini API:", data);
+            return res.status(500).json({ respuesta: "Ocurrió un problema con la conexión de la IA." });
         }
 
-        // Llamada a la API de Gemini con el modelo estable
-        const response = await ai.models.generateContent({
-            model: 'gemini-1.5-flash',
-            contents: prompt,
-            config: {
-                systemInstruction: "Eres 'Marcus', el mejor amigo y compañero de confianza del jugador. Eres cálido, leal, optimista y siempre estás listo para ayudarlo o charlar. Responde en 1 a 3 frases de forma natural, amigable y cercana.",
-            }
-        });
+        // Extraer la respuesta generada por Gemini
+        const textResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "¡Hola! Estoy listo para acompañarte.";
 
-        // Devolver la respuesta en la propiedad que lee Roblox
-        return res.status(200).json({ respuesta: response.text });
+        return res.status(200).json({ respuesta: textResponse });
+
     } catch (error) {
-        console.error("Error en la ejecución de la función:", error);
-        return res.status(500).json({ error: error.message || 'Error interno del servidor' });
+        console.error("Error interno del servidor:", error);
+        return res.status(500).json({ respuesta: "Error al procesar la solicitud." });
     }
 }
