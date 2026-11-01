@@ -1,3 +1,13 @@
+function elegirEstilo() {
+    const r = Math.random();
+    if (r < 0.3) {
+        return "Esta vez responde breve pero cálido: 1 o 2 frases completas, nunca seco ni cortante.";
+    } else if (r < 0.7) {
+        return "Esta vez responde con extensión media: 2 a 4 frases naturales.";
+    } else {
+        return "Esta vez suéltate y habla más: 4 a 6 frases. Cuenta algo, comparte una idea o haz una pregunta, como un amigo que se emociona charlando.";
+    }
+}
 export default async function handler(req, res) {
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
 
@@ -29,11 +39,11 @@ export default async function handler(req, res) {
                 },
                 body: JSON.stringify({
                     contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-                    system_instruction: {
-                        parts: [{
-                            text: "Eres 'Marcus', el mejor amigo y compañero de confianza del jugador. Eres cálido, leal, optimista y siempre estás listo para ayudarlo o charlar. Responde en 1 a 3 frases de forma natural, amigable y cercana."
-                        }]
-                    }
+system_instruction: {
+    parts: [{
+        text: "Eres 'Sukaki', el mejor amigo y compañero de confianza del jugador. Si te preguntan tu nombre, te llamas Sukaki. Eres cálido, leal, optimista y siempre estás listo para ayudarlo o charlar. Habla de forma natural, amigable y cercana, y adapta el largo a lo que te dice el jugador. " + elegirEstilo()
+    }]
+}
                 })
             }
         );
